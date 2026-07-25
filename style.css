@@ -129,6 +129,42 @@ main{
 }
 .opened .door-left{transform:rotateY(-106deg)}
 .opened .door-right{transform:rotateY(106deg)}
+.seal-pulse{
+  position:absolute;
+  left:50%;
+  top:47.2%;
+  z-index:2;
+  width:27%;
+  aspect-ratio:310/342;
+  background-image:url("assets/seal-v2.png");
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:contain;
+  filter:drop-shadow(0 8px 8px rgba(87,52,16,.28));
+  pointer-events:none;
+  transform:translate(-50%,-50%);
+  animation:sealPress 1.8s ease-in-out infinite;
+  will-change:transform,filter;
+}
+@keyframes sealPress{
+  0%,100%{
+    transform:translate(-50%,-50%) scale(1);
+    filter:drop-shadow(0 8px 8px rgba(87,52,16,.28));
+  }
+  45%{
+    transform:translate(-50%,-50%) scale(.94);
+    filter:drop-shadow(0 3px 4px rgba(87,52,16,.2));
+  }
+  72%{
+    transform:translate(-50%,-50%) scale(1.04);
+    filter:drop-shadow(0 11px 10px rgba(87,52,16,.32));
+  }
+}
+.opened .seal-pulse{
+  opacity:0;
+  animation:none;
+  transition:opacity .25s ease;
+}
 .seal{
   position:fixed;
   inset:0;
@@ -230,28 +266,42 @@ main{
 }
 
 .hero{padding-top:max(12px,env(safe-area-inset-top))}
-.scroll-cue{
-  flex:0 0 auto;
-  height:36px;
-  width:23px;
-  border:1px solid rgba(138,90,20,.55);
-  border-radius:20px;
-  position:relative;
-}
-.scroll-cue span{
+.page-cue{
   position:absolute;
   left:50%;
-  top:7px;
-  width:4px;
-  height:8px;
-  border-radius:3px;
-  background:var(--gold);
-  animation:scroll 1.8s infinite;
+  bottom:max(14px,var(--safe-b));
+  z-index:6;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  color:var(--gold-dark);
+  font-size:12px;
+  font-style:italic;
+  letter-spacing:.03em;
+  opacity:.68;
+  pointer-events:none;
+  transform:translateX(-50%);
+  white-space:nowrap;
 }
-@keyframes scroll{
-  0%{transform:translate(-50%,0);opacity:0}
-  30%{opacity:1}
-  100%{transform:translate(-50%,14px);opacity:0}
+.page-cue::after{
+  content:"";
+  width:8px;
+  height:8px;
+  border-right:1.5px solid currentColor;
+  border-bottom:1.5px solid currentColor;
+  transform:rotate(225deg);
+}
+.first-visit-hinting .page-cue{
+  animation:firstVisitNudge 3.8s cubic-bezier(.35,.05,.2,1) infinite;
+}
+.first-visit-hinting .page-cue::after{
+  animation:cuePulse 3.8s ease-in-out infinite;
+}
+@keyframes cuePulse{
+  0%,24%,100%{opacity:.35}
+  44%,62%{opacity:1}
+  82%{opacity:.35}
 }
 
 /* Kart içi butonlar */
@@ -468,13 +518,9 @@ main{
   .location-card .card-frame img{
     object-fit:contain;
   }
-  .scroll-cue{
-    position:absolute;
-    left:50%;
-    bottom:max(12px,var(--safe-b));
-    z-index:6;
-    transform:translateX(-50%);
-    background:rgba(246,239,229,.72);
+  .page-cue{
+    bottom:max(8px,var(--safe-b));
+    font-size:11px;
   }
 }
 
@@ -565,6 +611,16 @@ main::before{
 .invitation-open .reveal.visible .invitation-content{
   opacity:1;
   transform:scale(var(--content-scale));
+}
+
+.invitation-content.first-visit-nudge{
+  animation:firstVisitNudge 3.8s cubic-bezier(.35,.05,.2,1) infinite;
+}
+
+@keyframes firstVisitNudge{
+  0%,24%,100%{translate:0 0}
+  44%,62%{translate:0 -20px}
+  82%{translate:0 0}
 }
 .invitation-lead{
   margin:0 0 clamp(24px,6vh,54px);
