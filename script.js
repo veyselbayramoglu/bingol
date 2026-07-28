@@ -42,6 +42,15 @@ function pauseForBackground(){
   if(!music.paused) music.pause();
 }
 
+function resumeMusicAfterReturn(){
+  if(document.hidden ||
+     musicMutedByUser ||
+     !body.classList.contains("invitation-open") ||
+     !music.paused) return;
+
+  music.play().then(updateMusicButton).catch(updateMusicButton);
+}
+
 function updateMusicButton(){
   const isPlaying = !music.paused;
   musicToggle.classList.toggle("paused", !isPlaying);
@@ -95,10 +104,16 @@ musicToggle.addEventListener("click", () => {
 music.addEventListener("play", updateMusicButton);
 music.addEventListener("pause", updateMusicButton);
 document.addEventListener("visibilitychange", () => {
-  if(document.hidden) pauseForBackground();
+  if(document.hidden){
+    pauseForBackground();
+  }else{
+    resumeMusicAfterReturn();
+  }
 });
 window.addEventListener("pagehide", pauseForBackground);
 window.addEventListener("blur", pauseForBackground);
+window.addEventListener("focus", resumeMusicAfterReturn);
+window.addEventListener("pageshow", resumeMusicAfterReturn);
 
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
@@ -128,7 +143,19 @@ function updateCountdown(){
 updateCountdown();
 window.setInterval(updateCountdown, 1000);
 
-const pages = [...document.querySelectorAll(".page")];
+const postEventDate = new Date("2026-08-30T12:14:00+03:00");
+const ceremonyPage = document.getElementById("ceremony");
+const postEventPage = document.getElementById("postEvent");
+let postEventActive = Date.now() >= postEventDate.getTime();
+
+function applyPostEventVisibility(){
+  ceremonyPage.hidden = postEventActive;
+  postEventPage.hidden = !postEventActive;
+}
+
+applyPostEventVisibility();
+
+let pages = [];
 const hintedPages = new WeakSet();
 const pendingPageHints = new WeakMap();
 
@@ -172,31 +199,61 @@ const pageHintObserver = new IntersectionObserver(entries => {
   });
 }, {root:scroller, threshold:[0, .7]});
 
-pages.forEach((page, index) => {
-  pageHintObserver.observe(page);
+function configurePages(){
+  pageHintObserver.disconnect();
+  document.querySelectorAll(".page-cue").forEach(cue => cue.remove());
+  pages = [...document.querySelectorAll(".page:not([hidden])")];
 
-  if(index < pages.length - 1){
-    const cue = document.createElement("div");
-    cue.className = "page-cue page-cue-up";
-    cue.setAttribute("aria-hidden", "true");
+  pages.forEach((page, index) => {
+    pageHintObserver.observe(page);
 
-    const cueText = document.createElement("span");
-    cueText.textContent = "Kaydır";
-    cue.appendChild(cueText);
-    page.appendChild(cue);
-  }
+    if(index < pages.length - 1){
+      const cue = document.createElement("div");
+      cue.className = "page-cue page-cue-up";
+      cue.setAttribute("aria-hidden", "true");
 
-  page.addEventListener("click", event => {
-    if(event.target.closest("a,button")) return;
-    const nextPage = pages[index + 1];
-    if(nextPage) scrollToPage(nextPage);
+      const cueText = document.createElement("span");
+      cueText.textContent = "Kaydır";
+      cue.appendChild(cueText);
+      page.appendChild(cue);
+    }
   });
+}
+
+configurePages();
+
+scroller.addEventListener("click", event => {
+  if(event.target.closest("a,button")) return;
+  const page = event.target.closest(".page");
+  const nextPage = pages[pages.indexOf(page) + 1];
+  if(nextPage) scrollToPage(nextPage);
 });
 
+function activatePostEventMode(){
+  if(postEventActive || Date.now() < postEventDate.getTime()) return;
+
+  const currentPageWasReplaced = pageIsCentered(ceremonyPage);
+
+  postEventActive = true;
+  applyPostEventVisibility();
+  configurePages();
+  observer.observe(postEventPage);
+
+  if(currentPageWasReplaced) scrollToPage(postEventPage, "auto");
+}
+
+window.setInterval(activatePostEventMode, 1000);
+
 const photosShortcut = document.getElementById("photosShortcut");
+const postEventPhotoShortcut = document.getElementById("postEventPhotoShortcut");
 const photosPage = document.getElementById("photos");
 
 photosShortcut.addEventListener("click", event => {
+  event.preventDefault();
+  scrollToPage(photosPage);
+});
+
+postEventPhotoShortcut.addEventListener("click", event => {
   event.preventDefault();
   scrollToPage(photosPage);
 });
